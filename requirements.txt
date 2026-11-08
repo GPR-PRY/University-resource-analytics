@@ -1,0 +1,9 @@
+flask
+dash
+prophet
+pandas
+numpy
+plotly
+openpyxl
+joblib
+scikit-learn

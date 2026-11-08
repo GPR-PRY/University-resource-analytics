@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Demo · Predicción de consumo energético</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='estilo.css') }}">
+  <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+</head>
+<body>
+  <header>
+    <div class="cabecera">
+      <div>
+        <h1>Predicción de consumo energético</h1>
+        <p>Demo del modelo Prophet · consume la serie mensual de la UPV y predice el mes siguiente</p>
+      </div>
+      <nav>
+        <a class="activo" href="{{ url_for('index') }}">Demo</a>
+        <a href="/dashboard/" target="_blank" rel="noopener">Dashboard ↗</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    {% if error %}
+      {{ error | safe }}
+    {% else %}
+      <section class="panel">
+        <h2>Serie histórica, previsión base y escenario</h2>
+        {{ grafica | safe }}
+        <p class="nota">
+          Línea azul: consumo real. Puntos y trama gris: previsión del modelo original
+          a 12 meses con su incertidumbre (80%). Línea verde: tu escenario si has
+          inventado meses (el modelo se reajusta con ellos).
+        </p>
+      </section>
+
+      <section class="panel">
+        <h2>Juguete de predicción</h2>
+        <form method="post" action="{{ url_for('predecir_ruta') }}" class="formulario">
+          <label>
+            Mes a rellenar
+            <select name="mes">
+              {% for m in opciones %}
+                <option value="{{ m }}" {% if m == sel %}selected{% endif %}>{{ m }}</option>
+              {% endfor %}
+            </select>
+          </label>
+          <label>
+            Consumo inventado (kWh)
+            <input type="text" name="valor" value="{{ valor }}" placeholder="p. ej. 4000000" inputmode="decimal">
+          </label>
+          <button type="submit">Predecir siguiente mes</button>
+          <a class="boton-secundario" href="{{ url_for('reiniciar') }}">Reiniciar</a>
+        </form>
+
+        {% if predicho %}
+          <div class="resultado">
+            <span class="etiqueta">Predicción del siguiente mes</span>
+            <strong class="cifra">{{ predicho['valor'] | kwh }} <small>kWh</small></strong>
+            <span class="mes">{{ predicho['fecha'] }}</span>
+            {% if puntos %}
+              <span class="comparativa">
+                modelo base: {{ predicho['base'] | kwh }} kWh
+                ({{ '+' if predicho['valor'] - predicho['base'] >= 0 else '' }}{{ (predicho['valor'] - predicho['base']) | kwh }} kWh)
+              </span>
+            {% endif %}
+          </div>
+          <p class="nota">
+            El escenario reentrena Prophet con tus meses inventados, de modo que el
+            mes siguiente responde a ellos. Encadena predicciones eligiendo el mes
+            siguiente y pulsando de nuevo.
+          </p>
+        {% endif %}
+
+        {% if puntos %}
+          <h3>Tu escenario</h3>
+          <ul class="cadena">
+            {% for p in puntos %}
+              <li>
+                <span class="punto inventado">{{ p['fecha'] }}</span>
+                {{ p['valor'] | kwh }} kWh
+              </li>
+            {% endfor %}
+            {% if predicho %}
+              <li class="pendiente">
+                <span class="punto predicho">{{ predicho['fecha'] }}</span>
+                {{ predicho['valor'] | kwh }} kWh
+                <small>(orientativa)</small>
+              </li>
+            {% endif %}
+          </ul>
+        {% endif %}
+
+        {% if serie is not none %}
+          <p class="nota">
+            Serie cargada: {{ serie.index[0] | string }} – {{ serie.index[-1] | string }}
+            ({{ serie | length }} meses de consumo de la UPV).
+          </p>
+        {% endif %}
+      </section>
+    {% endif %}
+  </main>
+
+  <footer>Demo interna · modelo Prophet entrenado sobre datos de consumo de la UPV</footer>
+</body>
+</html>
